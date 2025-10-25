@@ -1,1 +1,363 @@
-d
+import java.util.*;
+import java.time.*;
+import java.time.format.*;
+
+// Главный класс программы (без public)
+class ToDoList {
+    public static void main(String[] args) {
+        TaskManager manager = new TaskManager();
+        manager.start();
+    }
+}
+
+// Класс для хранения информации о задаче
+class Task {
+    int id;
+    String title;
+    String description;
+    LocalDate dueDate;
+    String priority;
+    boolean isCompleted;
+
+    // Конструктор
+    public Task(int id, String title, String description, LocalDate dueDate, String priority) {
+        this.id = id;
+        this.title = title;
+        this.description = description;
+        this.dueDate = dueDate;
+        this.priority = priority;
+        this.isCompleted = false;
+    }
+
+    // Красивый вывод задачи
+    public void printTask() {
+        String status = isCompleted ? "[X]" : "[ ]";
+        String dateStr = dueDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+        System.out.println(status + " ID: " + id + " | " + title + " | Приоритет: " + priority + " | Срок: " + dateStr);
+        System.out.println("    Описание: " + description);
+        System.out.println("----------------------------------------");
+    }
+}
+
+// Класс для управления задачами
+class TaskManager {
+    private ArrayList<Task> tasks;
+    private Scanner scanner;
+    private int nextId;
+
+    public TaskManager() {
+        tasks = new ArrayList<>();
+        scanner = new Scanner(System.in);
+        nextId = 1;
+    }
+
+    // Главный метод, который запускает программу
+    public void start() {
+        System.out.println("=== МОЙ TO-DO LIST ===");
+
+        while (true) {
+            showMenu();
+            int choice = getNumberInput("Выберите действие: ");
+
+            switch (choice) {
+                case 1: createTask(); break;
+                case 2: showAllTasks(); break;
+                case 3: editTask(); break;
+                case 4: deleteTask(); break;
+                case 5: markTaskCompleted(); break;
+                case 6: sortByDate(); break;
+                case 7: sortByPriority(); break;
+                case 8: searchTasks(); break;
+                case 0:
+                    System.out.println("Выход из программы. Пока!");
+                    return;
+                default:
+                    System.out.println("Неверный выбор! Попробуйте еще раз.");
+            }
+        }
+    }
+
+    // Показать меню
+    private void showMenu() {
+        System.out.println("\n*** МЕНЮ ***");
+        System.out.println("1. Создать задачу");
+        System.out.println("2. Показать все задачи");
+        System.out.println("3. Редактировать задачу");
+        System.out.println("4. Удалить задачу");
+        System.out.println("5. Отметить задачу как выполненную");
+        System.out.println("6. Сортировать по дате");
+        System.out.println("7. Сортировать по приоритету");
+        System.out.println("8. Найти задачи");
+        System.out.println("0. Выход");
+    }
+
+    // Создать новую задачу
+    private void createTask() {
+        System.out.println("\n--- СОЗДАНИЕ НОВОЙ ЗАДАЧИ ---");
+
+        System.out.print("Введите название задачи: ");
+        String title = scanner.nextLine();
+
+        System.out.print("Введите описание: ");
+        String description = scanner.nextLine();
+
+        LocalDate dueDate = getDateInput();
+        String priority = getPriorityInput();
+
+        Task newTask = new Task(nextId, title, description, dueDate, priority);
+        tasks.add(newTask);
+        nextId++;
+
+        System.out.println("Задача успешно создана!");
+    }
+
+    // Показать все задачи
+    private void showAllTasks() {
+        if (tasks.isEmpty()) {
+            System.out.println("Список задач пуст.");
+            return;
+        }
+
+        System.out.println("\n--- ВСЕ ЗАДАЧИ ---");
+        for (Task task : tasks) {
+            task.printTask();
+        }
+    }
+
+    // Редактировать задачу
+    private void editTask() {
+        showAllTasks();
+        if (tasks.isEmpty()) return;
+
+        int id = getNumberInput("Введите ID задачи для редактирования: ");
+        Task task = findTaskById(id);
+
+        if (task == null) {
+            System.out.println("Задача с ID " + id + " не найдена.");
+            return;
+        }
+
+        System.out.println("Редактируем задачу:");
+        task.printTask();
+
+        System.out.print("Новое название (Enter - оставить без изменений): ");
+        String newTitle = scanner.nextLine();
+        if (!newTitle.isEmpty()) {
+            task.title = newTitle;
+        }
+
+        System.out.print("Новое описание (Enter - оставить без изменений): ");
+        String newDesc = scanner.nextLine();
+        if (!newDesc.isEmpty()) {
+            task.description = newDesc;
+        }
+
+        System.out.print("Хотите изменить дату? (y/n): ");
+        if (scanner.nextLine().equalsIgnoreCase("y")) {
+            task.dueDate = getDateInput();
+        }
+
+        System.out.print("Хотите изменить приоритет? (y/n): ");
+        if (scanner.nextLine().equalsIgnoreCase("y")) {
+            task.priority = getPriorityInput();
+        }
+
+        System.out.println("Задача успешно обновлена!");
+    }
+
+    // Удалить задачу
+    private void deleteTask() {
+        showAllTasks();
+        if (tasks.isEmpty()) return;
+
+        int id = getNumberInput("Введите ID задачи для удаления: ");
+        Task task = findTaskById(id);
+
+        if (task != null) {
+            tasks.remove(task);
+            System.out.println("Задача удалена!");
+        } else {
+            System.out.println("Задача с ID " + id + " не найдена.");
+        }
+    }
+
+    // Отметить задачу как выполненную
+    private void markTaskCompleted() {
+        showAllTasks();
+        if (tasks.isEmpty()) return;
+
+        int id = getNumberInput("Введите ID выполненной задачи: ");
+        Task task = findTaskById(id);
+
+        if (task != null) {
+            task.isCompleted = true;
+            System.out.println("Задача отмечена как выполненная!");
+        } else {
+            System.out.println("Задача с ID " + id + " не найдена.");
+        }
+    }
+
+    // Сортировка по дате
+    private void sortByDate() {
+        // Простая сортировка пузырьком - то, что может знать студент после 1 месяца
+        for (int i = 0; i < tasks.size() - 1; i++) {
+            for (int j = 0; j < tasks.size() - i - 1; j++) {
+                if (tasks.get(j).dueDate.isAfter(tasks.get(j + 1).dueDate)) {
+                    // Меняем местами
+                    Task temp = tasks.get(j);
+                    tasks.set(j, tasks.get(j + 1));
+                    tasks.set(j + 1, temp);
+                }
+            }
+        }
+        System.out.println("Задачи отсортированы по дате!");
+        showAllTasks();
+    }
+
+    // Сортировка по приоритету
+    private void sortByPriority() {
+        for (int i = 0; i < tasks.size() - 1; i++) {
+            for (int j = 0; j < tasks.size() - i - 1; j++) {
+                int priority1 = getPriorityValue(tasks.get(j).priority);
+                int priority2 = getPriorityValue(tasks.get(j + 1).priority);
+
+                if (priority1 < priority2) {
+                    Task temp = tasks.get(j);
+                    tasks.set(j, tasks.get(j + 1));
+                    tasks.set(j + 1, temp);
+                }
+            }
+        }
+        System.out.println("Задачи отсортированы по приоритету!");
+        showAllTasks();
+    }
+
+    // Поиск задач
+    private void searchTasks() {
+        System.out.println("\n--- ПОИСК ЗАДАЧ ---");
+        System.out.println("1. По названию");
+        System.out.println("2. По описанию");
+        System.out.println("3. По приоритету");
+        System.out.println("4. Просроченные задачи");
+
+        int choice = getNumberInput("Выберите тип поиска: ");
+        ArrayList<Task> results = new ArrayList<>();
+
+        switch (choice) {
+            case 1:
+                System.out.print("Введите текст для поиска в названии: ");
+                String searchTitle = scanner.nextLine().toLowerCase();
+                for (Task task : tasks) {
+                    if (task.title.toLowerCase().contains(searchTitle)) {
+                        results.add(task);
+                    }
+                }
+                break;
+
+            case 2:
+                System.out.print("Введите текст для поиска в описании: ");
+                String searchDesc = scanner.nextLine().toLowerCase();
+                for (Task task : tasks) {
+                    if (task.description.toLowerCase().contains(searchDesc)) {
+                        results.add(task);
+                    }
+                }
+                break;
+
+            case 3:
+                String searchPriority = getPriorityInput();
+                for (Task task : tasks) {
+                    if (task.priority.equalsIgnoreCase(searchPriority)) {
+                        results.add(task);
+                    }
+                }
+                break;
+
+            case 4:
+                LocalDate today = LocalDate.now();
+                for (Task task : tasks) {
+                    if (task.dueDate.isBefore(today) && !task.isCompleted) {
+                        results.add(task);
+                    }
+                }
+                break;
+
+            default:
+                System.out.println("Неверный выбор!");
+                return;
+        }
+
+        if (results.isEmpty()) {
+            System.out.println("Задачи не найдены.");
+        } else {
+            System.out.println("\n--- РЕЗУЛЬТАТЫ ПОИСКА (" + results.size() + " задач) ---");
+            for (Task task : results) {
+                task.printTask();
+            }
+        }
+    }
+
+    // Вспомогательные методы
+
+    // Найти задачу по ID
+    private Task findTaskById(int id) {
+        for (Task task : tasks) {
+            if (task.id == id) {
+                return task;
+            }
+        }
+        return null;
+    }
+
+    // Получить числовой ввод от пользователя
+    private int getNumberInput(String message) {
+        while (true) {
+            try {
+                System.out.print(message);
+                int number = scanner.nextInt();
+                scanner.nextLine(); // очистить буфер
+                return number;
+            } catch (Exception e) {
+                System.out.println("Ошибка! Введите число.");
+                scanner.nextLine(); // очистить неверный ввод
+            }
+        }
+    }
+
+    // Получить дату от пользователя
+    private LocalDate getDateInput() {
+        while (true) {
+            try {
+                System.out.print("Введите срок выполнения (гггг-мм-дд): ");
+                String dateStr = scanner.nextLine();
+                return LocalDate.parse(dateStr);
+            } catch (Exception e) {
+                System.out.println("Неверный формат даты! Используйте гггг-мм-дд (например: 2024-12-31)");
+            }
+        }
+    }
+
+    // Получить приоритет от пользователя
+    private String getPriorityInput() {
+        while (true) {
+            System.out.print("Введите приоритет (низкий, средний, высокий): ");
+            String priority = scanner.nextLine().toLowerCase();
+
+            if (priority.equals("низкий") || priority.equals("средний") || priority.equals("высокий")) {
+                return priority;
+            } else {
+                System.out.println("Неверный приоритет! Допустимые значения: низкий, средний, высокий");
+            }
+        }
+    }
+
+    // Получить числовое значение приоритета для сортировки
+    private int getPriorityValue(String priority) {
+        switch (priority.toLowerCase()) {
+            case "высокий": return 3;
+            case "средний": return 2;
+            case "низкий": return 1;
+            default: return 0;
+        }
+    }
+}
